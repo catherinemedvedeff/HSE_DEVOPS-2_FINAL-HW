@@ -26,7 +26,8 @@
           - "{{ postgres_volume }}:/var/lib/postgresql/data"
         env:
           POSTGRES_PASSWORD: "{{ vault_postgres_password }}"
-      register: postgres_result
+        comparisons:
+          env: ignore
       no_log: true
 
     - name: Get PostgreSQL container information
@@ -42,7 +43,7 @@
     - name: Wait for PostgreSQL
       ansible.builtin.wait_for:
         host: "{{ postgres_ip }}"
-        port: 5432
+        port: "{{ postgres_port }}"
         timeout: 60
 
     - name: Create audit_svc PostgreSQL user
@@ -65,7 +66,6 @@
         state: present
       no_log: true
 
-
     - name: Create audit-svc config directory
       ansible.builtin.file:
         path: "{{ audit_svc_config_dir }}"
@@ -81,6 +81,7 @@
         owner: "{{ audit_svc_uid }}"
         group: "{{ audit_svc_gid }}"
         mode: "{{ audit_svc_config_mode }}"
+      notify: Reload audit-svc configuration
       no_log: true
 
     - name: Start audit-svc container
@@ -89,7 +90,7 @@
         image: "{{ audit_svc_image }}"
         state: started
         pull: missing
-        restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
+        restart_policy: unless-stopped
         networks:
           - name: "{{ docker_network }}"
         volumes:
@@ -97,3 +98,29 @@
         env:
           AUDIT_SVC_CONFIG: /etc/audit-svc/config.yaml
         ports: []
+
+    - name: Apply pending configuration reload
+      ansible.builtin.meta: flush_handlers
+
+  handlers:
+    - name: Reload audit-svc configuration
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --network
+          - "{{ docker_network }}"
+          - curlimages/curl:latest
+          - --fail-with-body
+          - --silent
+          - --show-error
+          - --request
+          - POST
+          - "http://{{ audit_svc_container }}:8080/reload"
+      register: reload_result
+      changed_when: true
+      failed_when: >-
+        reload_result.rc != 0 or
+        (reload_result.stdout | from_json).status != 'reloaded'
+      no_log: true
