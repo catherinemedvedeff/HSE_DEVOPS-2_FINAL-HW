@@ -110,7 +110,8 @@ jobs:
           chmod 600 "$VAULT_FILE"
           printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
 
-          sudo -n ANSIBLE_CONFIG="$PWD/ansible.cfg" \
-            /usr/bin/ansible-playbook audit-svc.play.yml \
+          sudo -n /usr/bin/ansible-playbook \
+            -i inventories/prom/hosts.yaml \
+            audit-svc.play.yml \
             --vault-password-file "$VAULT_FILE" \
             --extra-vars "audit_svc_image=$AUDIT_IMAGE"
