@@ -1,0 +1,33 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: audit-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - audit-network
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: audit-grafana
+    restart: unless-stopped
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - audit-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  audit-network:
+    external: true
