@@ -11,3 +11,10 @@ audit_svc_config_dir: "/opt/audit-svc"
 audit_svc_uid: 10001
 audit_svc_gid: 10001
 audit_svc_config_mode: "0640"
+nginx_container: "audit-nginx"
+nginx_image: "nginx:1.30"
+nginx_host_port: 8088
+nginx_config_dir: "/opt/audit-svc/nginx"
+nginx_exporter_container: "audit-nginx-exporter"
+nginx_exporter_image: "nginx/nginx-prometheus-exporter:1.4"
+nginx_exporter_port: 9113
