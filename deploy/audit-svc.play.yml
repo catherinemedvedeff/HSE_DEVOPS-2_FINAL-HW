@@ -84,6 +84,23 @@
       notify: Reload audit-svc configuration
       no_log: true
 
+    - name: Apply database migrations
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --network
+          - "{{ docker_network }}"
+          - -v
+          - "{{ audit_svc_config_dir }}:/etc/audit-svc:ro"
+          - -e
+          - AUDIT_SVC_CONFIG=/etc/audit-svc/config.yaml
+          - "{{ audit_svc_image }}"
+          - migrate
+      register: migration_result
+      changed_when: "'applying ' in migration_result.stdout"  
+
     - name: Start audit-svc container
       community.docker.docker_container:
         name: "{{ audit_svc_container }}"
