@@ -64,3 +64,36 @@
         login_password: "{{ vault_postgres_password }}"
         state: present
       no_log: true
+
+
+    - name: Create audit-svc config directory
+      ansible.builtin.file:
+        path: "{{ audit_svc_config_dir }}"
+        state: directory
+        owner: "{{ audit_svc_uid }}"
+        group: "{{ audit_svc_gid }}"
+        mode: "0750"
+
+    - name: Render audit-svc configuration
+      ansible.builtin.template:
+        src: audit-config.yaml.j2
+        dest: "{{ audit_svc_config_dir }}/config.yaml"
+        owner: "{{ audit_svc_uid }}"
+        group: "{{ audit_svc_gid }}"
+        mode: "{{ audit_svc_config_mode }}"
+      no_log: true
+
+    - name: Start audit-svc container
+      community.docker.docker_container:
+        name: "{{ audit_svc_container }}"
+        image: "{{ audit_svc_image }}"
+        state: started
+        pull: missing
+        restart_policy: "{{ docker_restart_policy | default('unless-stopped') }}"
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ audit_svc_config_dir }}:/etc/audit-svc:ro"
+        env:
+          AUDIT_SVC_CONFIG: /etc/audit-svc/config.yaml
+        ports: []

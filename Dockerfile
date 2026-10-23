@@ -33,8 +33,13 @@ RUN find /tmp/dist -name '*.whl' -exec \
         pip install --no-cache-dir --no-index --no-deps {} + && \
     rm -rf /tmp/dist
 
-RUN groupadd --system audit && \
-    useradd --system --gid audit --create-home audit
+RUN groupadd --gid 10001 audit && \
+    useradd \
+        --uid 10001 \
+        --gid 10001 \
+        --create-home \
+        --shell /usr/sbin/nologin \
+        audit
 
 USER audit
 

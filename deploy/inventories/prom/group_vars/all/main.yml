@@ -3,6 +3,11 @@ postgres_image: "postgres:17"
 postgres_container: "audit-postgres"
 postgres_database: "audit"
 postgres_user: "audit_svc"
-
+postgres_port: 5432
 postgres_volume: "audit-postgres-data"
 docker_network: "audit-network"
+audit_svc_container: "audit-svc"
+audit_svc_config_dir: "/opt/audit-svc"
+audit_svc_uid: 10001
+audit_svc_gid: 10001
+audit_svc_config_mode: "0640"
