@@ -1,0 +1,8 @@
+---
+postgres_image: "postgres:17"
+postgres_container: "audit-postgres"
+postgres_database: "audit"
+postgres_user: "audit_svc"
+
+postgres_volume: "audit-postgres-data"
+docker_network: "audit-network"

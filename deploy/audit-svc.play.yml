@@ -1,0 +1,66 @@
+
+---
+- name: Deploy audit-svc infrastructure
+  hosts: prom
+  gather_facts: false
+
+  tasks:
+    - name: Create Docker network
+      community.docker.docker_network:
+        name: "{{ docker_network }}"
+
+    - name: Create PostgreSQL volume
+      community.docker.docker_volume:
+        name: "{{ postgres_volume }}"
+
+    - name: Start PostgreSQL 17
+      community.docker.docker_container:
+        name: "{{ postgres_container }}"
+        image: "{{ postgres_image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network }}"
+        ports: []
+        volumes:
+          - "{{ postgres_volume }}:/var/lib/postgresql/data"
+        env:
+          POSTGRES_PASSWORD: "{{ vault_postgres_password }}"
+      register: postgres_result
+      no_log: true
+
+    - name: Get PostgreSQL container information
+      community.docker.docker_container_info:
+        name: "{{ postgres_container }}"
+      register: postgres_info
+
+    - name: Get PostgreSQL internal IP
+      ansible.builtin.set_fact:
+        postgres_ip: >-
+          {{ postgres_info.container.NetworkSettings.Networks[docker_network].IPAddress }}
+
+    - name: Wait for PostgreSQL
+      ansible.builtin.wait_for:
+        host: "{{ postgres_ip }}"
+        port: 5432
+        timeout: 60
+
+    - name: Create audit_svc PostgreSQL user
+      community.postgresql.postgresql_user:
+        name: "{{ postgres_user }}"
+        password: "{{ vault_audit_password }}"
+        login_host: "{{ postgres_ip }}"
+        login_user: postgres
+        login_password: "{{ vault_postgres_password }}"
+        state: present
+      no_log: true
+
+    - name: Create audit database
+      community.postgresql.postgresql_db:
+        name: "{{ postgres_database }}"
+        owner: "{{ postgres_user }}"
+        login_host: "{{ postgres_ip }}"
+        login_user: postgres
+        login_password: "{{ vault_postgres_password }}"
+        state: present
+      no_log: true
