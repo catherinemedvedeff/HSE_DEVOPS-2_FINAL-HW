@@ -99,7 +99,21 @@
           - "{{ audit_svc_image }}"
           - migrate
       register: migration_result
-      changed_when: "'applying ' in migration_result.stdout"  
+      changed_when: >-
+        'applying ' in
+        (migration_result.stdout + migration_result.stderr)
+
+    - name: Show migration results
+      ansible.builtin.debug:
+        msg: >-
+          {{
+            (
+              migration_result.stdout_lines +
+              migration_result.stderr_lines
+            )
+            | select('search', 'applying |done:')
+            | list
+          }}
 
     - name: Start audit-svc container
       community.docker.docker_container:
